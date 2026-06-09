@@ -1,15 +1,42 @@
 import streamlit as st
 import pandas as pd
+from typing import List
+import zipfile
 #from datetime import date
 
+def handle_zip_file(zipado: str) -> List[pd.DataFrame]:
+    with zipfile.ZipFile(zipado, "r") as zf:
+        list_types = [file.split(".")[-1] for file in zf.namelist()]
+        if len(list_types) > 1:
+            print("Há arquivos em formatos distintos no zip!")
+            return False
+        
+        for file in zf.namelist():
+            ...
+
+        
+
+            
+
+
+def handle_file(file: str) -> pd.DataFrame:
+    if file.split(".")[-1] == "csv":
+        return pd.read_csv(file)
+    
+    if file.split(".")[-1] in ["xlsx", "xls"]:
+        return pd.read_excel(file)
+    
+    if file.split(".")[-1] == "zip":
+        return handle_zip_file(file)
 
 st.title("Agente Formatador")
-uploaded_file = st.file_uploader("Arquivo a ser formatado!", type=["csv", "xls", "xlsx"])
+uploaded_file = st.file_uploader("Arquivo a ser formatado!", type=["csv", "xls", "xlsx", "zip"])
 
 
 
 if uploaded_file is not None:
-    
+    if uploaded_file.type == "application/zip":
+
     if uploaded_file.type == "text/csv":
         df = pd.read_csv(uploaded_file)
     else:
