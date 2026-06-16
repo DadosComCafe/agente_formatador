@@ -20,7 +20,7 @@ Com isso, um diretório chamado .venv será criado na raiz do projeto. Este dire
 
 ### 3. Rode o servidor que irá levantar o agente:
 
-    uv run convert_types.py
+    uv run streamlit run convert_types.py
 
 
 ## Utilizando o agente
