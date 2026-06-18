@@ -5,8 +5,10 @@ import zipfile
 import io
 import os
 
+
 st.title("Agente Formatador")
 uploaded_file = st.file_uploader("Arquivo a ser formatado!", type=["csv", "xlsx", "zip"])
+
 
 if uploaded_file:
     if uploaded_file.type == "application/zip":
@@ -61,6 +63,13 @@ if uploaded_file:
                 
                 st.markdown(f"**{col}** (exemplo: `{primeiro_valor}`)")
                 
+                nome_colunas = st.text_input(
+                    "Novo nome da coluna (opcional):",
+                    key=f"nome_{col}",
+                    placeholder=col
+                )
+
+
                 formato_colunas = st.radio(
                     "Formato:",
                     options=["str", "int", "float", "date"],
@@ -68,6 +77,7 @@ if uploaded_file:
                     horizontal=True,
                     key=f"formato_{col}"
                 )
+
 
                 if formato_colunas:
                     formatos_escolhidos[col] = formato_colunas
@@ -78,6 +88,7 @@ if uploaded_file:
             
             st.divider()
             
+
 
             if st.button("Converter dados conforme formatos selecionados para TODOS os arquivos", type="primary"):
                 if formatos_escolhidos:
@@ -95,25 +106,37 @@ if uploaded_file:
                             
                             df_converted = df.copy()
                             
+                            # Aplicar renomeação de colunas primeiro
+                            for col_original, col_nova in zip(df_exemplo.columns, [st.session_state.get(f"nome_{col}", col) if st.session_state.get(f"nome_{col}", col) else col for col in df_exemplo.columns]):
+                                if col_original in df_converted.columns and col_nova != col_original:
+                                    df_converted.rename(columns={col_original: col_nova}, inplace=True)
+                            
                             for col, formato_escolhido in formatos_escolhidos.items():
-                                if col in df_converted.columns:
+                                # Ajustar nome da coluna se foi renomeado
+                                col_atual = col
+                                for col_original, col_nova in zip(df_exemplo.columns, [st.session_state.get(f"nome_{c}", c) if st.session_state.get(f"nome_{c}", c) else c for c in df_exemplo.columns]):
+                                    if col_original == col and col_nova != col_original:
+                                        col_atual = col_nova
+                                        break
+                                
+                                if col_atual in df_converted.columns:
                                     try:
                                         if formato_escolhido == "int":
                                             #Dar uma pensada aqui
-                                            df_converted[col] = pd.to_numeric(df_converted[col], errors='coerce')
-                                            df_converted[col] = df_converted[col].fillna(0).astype(int)
+                                            df_converted[col_atual] = pd.to_numeric(df_converted[col_atual], errors='coerce')
+                                            df_converted[col_atual] = df_converted[col_atual].fillna(0).astype(int)
                                         elif formato_escolhido == "float":
                                             #E aqui
-                                            df_converted[col] = pd.to_numeric(df_converted[col], errors='coerce')
-                                            df_converted[col] = df_converted[col].fillna(0.0)
+                                            df_converted[col_atual] = pd.to_numeric(df_converted[col_atual], errors='coerce')
+                                            df_converted[col_atual] = df_converted[col_atual].fillna(0.0)
                                         elif formato_escolhido == "str":
-                                            df_converted[col] = df_converted[col].astype(str)
+                                            df_converted[col_atual] = df_converted[col_atual].astype(str)
                                         elif formato_escolhido == "date":
-                                            df_converted[col] = pd.to_datetime(df_converted[col], errors='coerce')
+                                            df_converted[col_atual] = pd.to_datetime(df_converted[col_atual], errors='coerce')
                                         
-                                        st.success(f"Convertido '{col}' para {formato_escolhido} em {nome_arquivo}")
+                                        st.success(f"Convertido '{col_atual}' para {formato_escolhido} em {nome_arquivo}")
                                     except Exception as e:
-                                        st.error(f"Erro ao converter '{col}' para {formato_escolhido} em {nome_arquivo}: {e}")
+                                        st.error(f"Erro ao converter '{col_atual}' para {formato_escolhido} em {nome_arquivo}: {e}")
                             
                             arquivos_processados[nome_arquivo] = df_converted
                         except Exception as e:
@@ -161,6 +184,7 @@ if uploaded_file:
     else:
         df = handle_file(uploaded_file)
 
+
         st.subheader("Formatação atual:")
         st.dataframe(df, width="stretch")
         
@@ -168,6 +192,7 @@ if uploaded_file:
         
         formatos_escolhidos = {}
         tipos_saida = [".xlsx", ".csv"]
+
 
         st.markdown(f"Tipo de arquivo a ser exportado:")
         formato_tipo = st.radio(
@@ -178,16 +203,25 @@ if uploaded_file:
             key="saida"
         )
 
+
         if formato_tipo:
             st.success(f"{formato_tipo}")
         else:
             st.info(f"formato de saída não definido")
         st.divider()
 
+
         for col in df.columns:
             primeiro_valor = df[col].iloc[0] if len(df) > 0 else None
             
             st.markdown(f"**{col}** (exemplo: `{primeiro_valor}`)")
+            
+            # Adicionar campo para renomear coluna também aqui
+            nome_novo = st.text_input(
+                "Novo nome da coluna (opcional):",
+                key=f"nome_single_{col}",
+                placeholder=col
+            )
             
             formato_colunas = st.radio(
                 "Formato:",
@@ -197,6 +231,7 @@ if uploaded_file:
                 key=f"formato_{col}"
             )
 
+
             if formato_colunas:
                 formatos_escolhidos[col] = formato_colunas
                 st.success(f"{col} → {formato_colunas}")
@@ -204,29 +239,44 @@ if uploaded_file:
                 st.info(f"{col} → formato não definido")
             st.divider()
 
+
         if st.button("Converter dados conforme formatos selecionados", type="primary"):
             if formatos_escolhidos:
                 df_converted = df.copy()
                 
+                # Aplicar renomeação de colunas primeiro
+                for col_original in df.columns:
+                    nome_novo = st.session_state.get(f"nome_single_{col_original}", col_original)
+                    if nome_novo and nome_novo != col_original:
+                        df_converted.rename(columns={col_original: nome_novo}, inplace=True)
+                
                 for col, formato_escolhido in formatos_escolhidos.items():
-                    if col in df_converted.columns:
+                    # Ajustar nome da coluna se foi renomeado
+                    col_atual = col
+                    for col_original in df.columns:
+                        nome_novo = st.session_state.get(f"nome_single_{col_original}", col_original)
+                        if col_original == col and nome_novo and nome_novo != col_original:
+                            col_atual = nome_novo
+                            break
+                    
+                    if col_atual in df_converted.columns:
                         try:
                             if formato_escolhido == "int":
                                 #Dar uma pensada aqui
-                                df_converted[col] = pd.to_numeric(df_converted[col], errors='coerce')
-                                df_converted[col] = df_converted[col].fillna(0).astype(int)
+                                df_converted[col_atual] = pd.to_numeric(df_converted[col_atual], errors='coerce')
+                                df_converted[col_atual] = df_converted[col_atual].fillna(0).astype(int)
                             elif formato_escolhido == "float":
                                 # E aqui
-                                df_converted[col] = pd.to_numeric(df_converted[col], errors='coerce')
-                                df_converted[col] = df_converted[col].fillna(0.0)
+                                df_converted[col_atual] = pd.to_numeric(df_converted[col_atual], errors='coerce')
+                                df_converted[col_atual] = df_converted[col_atual].fillna(0.0)
                             elif formato_escolhido == "str":
-                                df_converted[col] = df_converted[col].astype(str)
+                                df_converted[col_atual] = df_converted[col_atual].astype(str)
                             elif formato_escolhido == "date":
-                                df_converted[col] = pd.to_datetime(df_converted[col], errors='coerce')
+                                df_converted[col_atual] = pd.to_datetime(df_converted[col_atual], errors='coerce')
                             
-                            st.success(f"Convertido '{col}' para {formato_escolhido}")
+                            st.success(f"Convertido '{col_atual}' para {formato_escolhido}")
                         except Exception as e:
-                            st.error(f"Erro ao converter '{col}' para {formato_escolhido}: {e}")
+                            st.error(f"Erro ao converter '{col_atual}' para {formato_escolhido}: {e}")
                 
                 st.subheader("Dados convertidos:")
                 st.dataframe(df_converted, width="stretch")
