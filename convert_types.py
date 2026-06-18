@@ -153,12 +153,12 @@ if uploaded_file:
                             if formato_tipo == ".csv":
                                 nome_saida = f"{nome_base}_formatado.csv"
                                 csv_buffer = io.StringIO()
-                                df.to_csv(csv_buffer)
+                                df.to_csv(csv_buffer, index=False)
                                 zip_final.writestr(nome_saida, csv_buffer.getvalue())
                             else:
                                 nome_saida = f"{nome_base}_formatado.xlsx"
                                 xlsx_buffer = io.BytesIO()
-                                df.to_excel(xlsx_buffer)
+                                df.to_excel(xlsx_buffer, index=False)
                                 zip_final.writestr(nome_saida, xlsx_buffer.getvalue())
                     
                     zip_saida.seek(0)
@@ -282,7 +282,7 @@ if uploaded_file:
                 st.dataframe(df_converted, width="stretch")
                 
                 if formato_tipo == ".csv":
-                    df_converted.to_csv("converted_data.csv")
+                    df_converted.to_csv("converted_data.csv", index=False)
                     st.download_button(
                         label="Baixar CSV",
                         data=open("converted_data.csv", "rb"),
@@ -290,7 +290,7 @@ if uploaded_file:
                         mime="text/csv"
                     )
                 else:
-                    df_converted.to_excel("converted_data.xlsx")
+                    df_converted.to_excel("converted_data.xlsx", index=False)
                     st.download_button(
                         label="Baixar XLSX",
                         data=open("converted_data.xlsx", "rb"),
